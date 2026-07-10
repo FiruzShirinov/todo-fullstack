@@ -1,0 +1,21 @@
+# Dependencies
+/backend/vendor
+/frontend/node_modules
+
+# Env files (keep .env.example)
+**/.env
+
+# Build output
+/frontend/.output
+/frontend/.nuxt
+/frontend/dist
+
+# Laravel runtime
+/backend/storage/*.key
+/backend/storage/logs/*.log
+/backend/database/*.sqlite
+/backend/.phpunit.result.cache
+
+# OS / editor
+.DS_Store
+Thumbs.db

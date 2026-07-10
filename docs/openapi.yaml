@@ -1,0 +1,346 @@
+openapi: 3.0.3
+info:
+  title: Todo API
+  description: >
+    REST API for the To-Do List test assignment. Laravel + Sanctum bearer-token
+    authentication. All responses are JSON; errors share a single envelope
+    (see the `Error` and `ValidationError` schemas).
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api
+    description: Local development
+tags:
+  - name: Auth
+  - name: Tasks
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate and receive a bearer token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '422':
+          description: Invalid credentials or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke the current access token
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: 'Logged out.' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /user:
+    get:
+      tags: [Auth]
+      summary: Get the current authenticated user
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: List tasks (search, filter, sort, paginate)
+      description: >
+        Regular users see only their own tasks. Admins and viewers see every
+        user's tasks; only admins may edit or delete tasks they don't own.
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string, maxLength: 255 }
+          description: Matches against title and description
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/TaskStatus' }
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [due_date, status, title, created_at]
+            default: due_date
+        - name: direction
+          in: query
+          schema: { type: string, enum: [asc, desc], default: asc }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        '200':
+          description: Paginated task list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTasks'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+    post:
+      tags: [Tasks]
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Task' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+
+    get:
+      tags: [Tasks]
+      summary: Get a single task
+      responses:
+        '200':
+          description: Task
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Task' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    put:
+      tags: [Tasks]
+      summary: Replace a task (owner or admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Task' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+    patch:
+      tags: [Tasks]
+      summary: Partially update a task (owner or admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskPatchInput'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Task' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+    delete:
+      tags: [Tasks]
+      summary: Delete a task (owner or admin only)
+      responses:
+        '204': { description: Task deleted }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: "Sanctum personal access token, e.g. `Authorization: Bearer 3|xxxx...`"
+
+  schemas:
+    TaskStatus:
+      type: string
+      enum: [pending, in_progress, completed]
+
+    UserRole:
+      type: string
+      enum: [user, viewer, admin]
+      description: >
+        `user` sees only their own tasks. `viewer` sees every task but can
+        only edit/delete their own. `admin` sees and can edit/delete every task.
+
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 2 }
+        name: { type: string, example: 'Иван Петров' }
+        email: { type: string, format: email, example: 'user@example.com' }
+        role: { $ref: '#/components/schemas/UserRole' }
+
+    Task:
+      type: object
+      properties:
+        id: { type: integer, example: 12 }
+        user_id: { type: integer, example: 2 }
+        title: { type: string, example: 'Купить продукты' }
+        description: { type: string, nullable: true }
+        due_date: { type: string, format: date, nullable: true, example: '2026-08-01' }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        user: { $ref: '#/components/schemas/User' }
+        can:
+          type: object
+          properties:
+            update: { type: boolean }
+            delete: { type: boolean }
+
+    TaskInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 3, maxLength: 255 }
+        description: { type: string, nullable: true }
+        due_date: { type: string, format: date, nullable: true }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+
+    TaskPatchInput:
+      allOf:
+        - $ref: '#/components/schemas/TaskInput'
+      description: All fields optional for PATCH.
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        last_page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+        from: { type: integer, nullable: true }
+        to: { type: integer, nullable: true }
+
+    PaginatedTasks:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Task' }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+        links:
+          type: object
+          additionalProperties: { type: string, nullable: true }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+        device_name: { type: string, default: api }
+
+    LoginResponse:
+      type: object
+      properties:
+        token: { type: string, example: '3|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' }
+        user: { $ref: '#/components/schemas/User' }
+
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+
+    ValidationError:
+      type: object
+      properties:
+        message: { type: string }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+
+  responses:
+    Unauthenticated:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { message: 'Unauthenticated.' }
+    Forbidden:
+      description: Authenticated, but not allowed to act on this resource
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { message: 'This action is unauthorized.' }
+    NotFound:
+      description: Resource does not exist
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { message: 'Resource not found.' }
+    ValidationFailed:
+      description: Request failed validation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ValidationError' }
+
+security:
+  - bearerAuth: []

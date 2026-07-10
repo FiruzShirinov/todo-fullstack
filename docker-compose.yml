@@ -1,0 +1,43 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: todo-backend
+    environment:
+      APP_NAME: "Todo API"
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      # The browser origin allowed by CORS.
+      FRONTEND_URL: http://localhost:3000
+      DB_CONNECTION: sqlite
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist the SQLite database across restarts.
+      - backend-db:/app/database
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: todo-frontend
+    environment:
+      # Browser-facing API base (host machine).
+      NUXT_PUBLIC_API_BASE: http://localhost:8000/api
+      # SSR (in-network) API base — reaches the backend service directly.
+      NUXT_API_BASE_SERVER: http://backend:8000/api
+      HOST: 0.0.0.0
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  backend-db:
