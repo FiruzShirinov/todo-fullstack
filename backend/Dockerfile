@@ -20,6 +20,10 @@ RUN composer install --no-interaction --no-scripts --prefer-dist
 COPY . .
 RUN composer dump-autoload --optimize
 
+# The real .env is excluded via .dockerignore, so seed one from the example.
+# key:generate (run at startup) needs this file to already exist.
+RUN cp -n .env.example .env
+
 # Entrypoint prepares the SQLite DB, runs migrations + seeds, then serves.
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh \

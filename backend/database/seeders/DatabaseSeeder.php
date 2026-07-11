@@ -14,6 +14,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Idempotent: the container entrypoint runs `migrate --seed` on every
+        // boot, so bail out if the demo data already exists (persisted volume).
+        if (User::where('email', 'admin@example.com')->exists()) {
+            return;
+        }
+
         // Test admin — sees every task.
         $admin = User::factory()->admin()->create([
             'name' => 'Администратор',
