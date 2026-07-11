@@ -16,6 +16,9 @@
 /backend/database/*.sqlite
 /backend/.phpunit.result.cache
 
+# Generated API docs (rendered on demand from docs/openapi.yaml)
+/docs/api.html
+
 # OS / editor
 .DS_Store
 Thumbs.db

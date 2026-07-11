@@ -163,9 +163,14 @@ npm run lint          # ESLint (typescript-eslint + eslint-plugin-vue), 0 зам
 
 ## Документация API
 
+> **Интерактивная документация (Redoc):** при запущенном бэкенде откройте
+> **http://localhost:8000/api/docs** — UI рендерится из того же
+> [`docs/openapi.yaml`](docs/openapi.yaml) (спека отдаётся по `/api/openapi.yaml`).
+>
 > **Полная спецификация:** [`docs/openapi.yaml`](docs/openapi.yaml) (OpenAPI 3.0) —
-> откройте в [editor.swagger.io](https://editor.swagger.io) (File → Import file) или
-> просмотрите локально: `npx @redocly/cli preview-docs docs/openapi.yaml`.
+> её также можно открыть в [editor.swagger.io](https://editor.swagger.io)
+> (File → Import file) или собрать статический HTML:
+> `npx @redocly/cli build-docs docs/openapi.yaml -o docs/api.html`.
 > В задании OpenAPI и краткое описание в README были заданы как альтернатива
 > («OpenAPI/Swagger-документация **или** краткое описание API в README») — ниже
 > дублируем краткое описание для удобства чтения прямо здесь, а полный

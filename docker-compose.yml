@@ -16,6 +16,9 @@ services:
     volumes:
       # Persist the SQLite database across restarts.
       - backend-db:/app/database
+      # Serve the canonical OpenAPI spec at /api/docs without duplicating it
+      # into the image. base_path('../docs') resolves to /docs inside /app.
+      - ./docs:/docs:ro
     healthcheck:
       test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8000/up') ? 0 : 1);"]
       interval: 10s
